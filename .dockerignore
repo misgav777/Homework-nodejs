@@ -1,0 +1,25 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Git files
+.git
+.gitignore
+
+# Testing and coverage
+coverage
+.nyc_output
+
+# Build artifacts
+*.zip
+*.tgz
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea
+.vscode
+*.sublime-project
+*.sublime-workspace

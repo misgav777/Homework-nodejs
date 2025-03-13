@@ -54,13 +54,26 @@ typings/
 
 # Output of 'npm pack'
 *.tgz
+*.zip
 
 # Yarn Integrity file
 .yarn-integrity
 
 # dotenv environment variables file
 .env
-##
+.env.local
+.env.development
+.env.test
+.env.production
 
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
 
 # End of https://www.gitignore.io/api/node
