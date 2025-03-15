@@ -4,6 +4,14 @@ var port = 3000;
 var primes = require('./primes.js');
 var fs = require('fs');
 
+app.get('/health', function(req, res) {
+  res.status(200).json({
+    status: 'UP',
+    timestamp: new Date().toISOString(),
+    service: 'hw-app'
+  });
+});
+
 app.get('/', function(req, res){
     //res.writeHead(200, {'Content-type': 'text/html'});
     //res.write('Hello HTML');

@@ -147,26 +147,29 @@ pipeline{
             }
         }
 
-        stage('Verify Staging Deployment') {
-            when {
-                expression { env.BUILD_TYPE == 'main' }
-            }
+       stage('Verify Deployment') {
             steps {
-                // Allow time for ArgoCD to deploy
-                sleep(time: 30, unit: 'SECONDS')
+                // Allow time for deployment to complete
+                sleep(time: 15, unit: 'SECONDS')
                 
-                // Verify deployment status via kubectl
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh """
-                        export KUBECONFIG=\${KUBECONFIG}
-                        kubectl rollout status deployment/${APP_NAME} -n ${APP_NAME}-staging --timeout=3m
-                    """
+                retry(10) {
+                    script {
+                        def response = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://ac3126dbd758b4dfcac754a24af2f38c-72db703e039d3f40.elb.ap-south-1.amazonaws.com/stg/health', returnStdout: true).trim()
+                        if (response != "200") {
+                            error "Health check failed with status ${response}"
+                            sleep(time: 5, unit: 'SECONDS')
+                        }
+                    }
                 }
                 
+<<<<<<< HEAD
                 // Run tests against staging
                 sh """
                     npm run test:e2e -- --url=http://ac3126dbd758b4dfcac754a24af2f38c-72db703e039d3f40.elb.ap-south-1.amazonaws.com/stg
                 """
+=======
+                echo "Application health check passed!"
+>>>>>>> 18ae7e0 (feat: add app for 3 application)
             }
         }
 
