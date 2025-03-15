@@ -48,11 +48,11 @@ pipeline{
             }
         }
                 
-        // stage('installing dependencies') {
-        //     steps {
-        //         sh 'npm install'
-        //     }
-        // }
+        stage('installing dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
 
         // stage('NPM dependencies Audit') {
         //     steps {
