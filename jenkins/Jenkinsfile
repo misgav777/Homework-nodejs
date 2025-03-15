@@ -25,7 +25,7 @@ pipeline{
                         env.BUILD_TYPE = 'main'
                         env.TARGET_ENV = 'staging'
                         env.ECR_REPO = env.STG_REPO
-                    } else if (env.BRANCH_NAME.starWith(release/)) {
+                    } else if (env.BRANCH_NAME.startsWith('release/')) {
                         env.BUILD_TYPE = 'release'
                         env.TARGET_ENV = 'production'
                         env.ECR_REPO = env.PRD_REPO
