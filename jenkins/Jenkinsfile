@@ -194,8 +194,10 @@ pipeline{
                         # Get current version from package.json
                         CURRENT_VERSION=\$(node -p "require('./package.json').version")
                         
-                        # Split version into components
-                        IFS='.' read -r MAJOR MINOR PATCH <<< "\$CURRENT_VERSION"
+                        # Split version into components using a more compatible approach
+                        MAJOR=\$(echo \$CURRENT_VERSION | cut -d. -f1)
+                        MINOR=\$(echo \$CURRENT_VERSION | cut -d. -f2)
+                        PATCH=\$(echo \$CURRENT_VERSION | cut -d. -f3)
 
                         # Increment version based on change type
                         if [ "\${env.CHANGE_TYPE}" = "major" ]; then
