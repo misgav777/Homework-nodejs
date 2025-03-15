@@ -1,33 +1,65 @@
 pipeline{
     agent any
     
-    stages{
-        stage("A"){
-            steps{
-                echo "========executing A========"
-            }
-            post{
-                always{
-                    echo "========always========"
-                }
-                success{
-                    echo "========A executed successfully========"
-                }
-                failure{
-                    echo "========A execution failed========"
-                }
-            }
-        }
+    tools {
+        nodejs '23.7.0'
+        git 'Default'
     }
-    post{
-        always{
-            echo "========always========"
+
+    environment {
+        GIT_CREDS_ID = credentials('GH_TOKEN_PSW')
+        APP_NAME = "hw-app"
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        AWS_REGION = 'ap-south-1'
+        DEV_REPO = 'dev/hw-app'
+        STG_REPO = 'stg/hw-app'
+        PRD_REPO = 'prd/hw-app'
+        GITOPS_REPO = 'https://github.com/misgav777/hw-k8s-config.git'
+    }
+
+    stages {
+        stage('Initialize') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'main') {
+                        env.BUILD_TYPE = 'main'
+                        env.TARGET_ENV = 'staging'
+                        env.ECR_REPO = env.STG_REPO
+                    } else if (env.BRANCH_NAME.starWith(release/)) {
+                        env.BUILD_TYPE = 'release'
+                        env.TARGET_ENV = 'production'
+                        env.ECR_REPO = env.PRD_REPO
+                        env.RELEASE_VERSION = env.BRANCH_NAME.replaceAll('release/', '')
+                    } else {
+                        env.BUILD_TYPE = 'feature'
+                        env.TARGET_ENV = 'development'
+                        env.ECR_REPO = env.DEV_REPO
+                    }
+                    env.FULL_IMAGE_NAME = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
+                    env.BUILD_ID = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
+
+                    echo "Build Type: ${env.BUILD_TYPE}"
+                    echo "Target Environment: ${env.TARGET_ENV}"
+                    echo "Build ID: ${env.BUILD_ID}"
+                    echo "ECR Repository: ${env.ECR_REPO}"
+                    echo "Full Image Name: ${env.FULL_IMAGE_NAME}"
+
+                }
+            }
         }
-        success{
-            echo "========pipeline executed successfully ========"
+                
+        stage('installing dependencies') {
+            steps {
+                sh 'npm install'
+            }
         }
-        failure{
-            echo "========pipeline execution failed========"
+
+        stage('testing') {
+            steps {
+                sh 'npm test'
+                sh 'npm lint'
+                junit allowEmptyResults: true, testResults: 'junit-results.xml'
+            }
         }
     }
 }
