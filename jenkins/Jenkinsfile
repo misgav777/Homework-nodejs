@@ -7,6 +7,7 @@ pipeline{
     }
 
     environment {
+        KUBECONFIG = credentials('kubeconfig')
         GIT_CREDS_ID = credentials('GH_TOKEN_PSW')
         APP_NAME = "hw-app"
         AWS_ACCOUNT_ID = credentials('aws-account-id')
@@ -15,6 +16,7 @@ pipeline{
         STG_REPO = 'stg/hw-app'
         PRD_REPO = 'prd/hw-app'
         GITOPS_REPO = 'https://github.com/misgav777/hw-k8s-config.git'
+
     }
 
     stages {
@@ -50,15 +52,9 @@ pipeline{
                 
         stage('installing dependencies') {
             steps {
-                sh 'npm install'
+                sh 'npm ci'
             }
         }
-
-        // stage('NPM dependencies Audit') {
-        //     steps {
-        //         sh 'npm audit --audit-level=critical'
-        //     }
-        // }
 
         stage('testing') {
             steps {
@@ -74,5 +70,278 @@ pipeline{
                 }                
             }
         }
+
+        stage('Build & Package') {
+            steps {                
+                script {
+                    // Determine image tag based on branch
+                    if (env.BUILD_TYPE == 'feature') {
+                        env.IMAGE_TAG = "dev-${env.BUILD_ID}"
+                    } else if (env.BUILD_TYPE == 'main') {
+                        env.IMAGE_TAG = "rc-${env.BUILD_ID}"
+                    } else if (env.BUILD_TYPE == 'release') {
+                        env.IMAGE_TAG = "${env.RELEASE_VERSION}"
+                    }
+                    
+                    // Login to AWS ECR
+                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    
+                    // Build and push Docker image
+                    sh """
+                        docker build -t ${FULL_IMAGE_NAME}:${env.IMAGE_TAG} .
+                        docker push ${FULL_IMAGE_NAME}:${env.IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('Update GitOps Config - Dev') {
+            when {
+                expression { env.BUILD_TYPE == 'feature' }
+            }
+            steps {
+                withCredentials([string(credentialsId: 'GH_TOKEN_PSW', variable: 'GITHUB_TOKEN')]) {
+                    sh """
+                        git config --global credential.helper '!f() { echo username=x-access-token; echo password=$GITHUB_TOKEN; }; f'
+                        git clone https://${GITHUB_TOKEN}@github.com/misgav777/hw-k8s-config.git gitops
+                        cd gitops
+                        
+                        # Update image tag in development values
+                        sed -i 's|tag:.*|tag: "${env.IMAGE_TAG}"|g' environments/dev/${APP_NAME}/values.yaml
+                        
+                        git config user.email "jenkins@example.com"
+                        git config user.name "Jenkins CI"
+                        git add environments/dev/${APP_NAME}/values.yaml
+                        git commit -m "Update ${APP_NAME} dev image to ${env.IMAGE_TAG}"
+                        git push
+                    """
+                }
+                
+                echo "ArgoCD will automatically deploy the changes to dev environment"
+            }
+        }
+
+        stage('Update GitOps Config - Staging') {
+            when {
+                expression { env.BUILD_TYPE == 'main' }
+            }
+            steps {
+                withCredentials([string(credentialsId: 'GH_TOKEN_PSW', variable: 'GITHUB_TOKEN')]) {
+                    sh """
+                        git config --global credential.helper '!f() { echo username=x-access-token; echo password=$GITHUB_TOKEN; }; f'
+                        git clone https://${GITHUB_TOKEN}@github.com/misgav777/hw-k8s-config.git gitops
+                        cd gitops
+                        
+                        # Update image tag in staging values
+                        sed -i 's|tag:.*|tag: "${env.IMAGE_TAG}"|g' environments/staging/${APP_NAME}/values.yaml
+                        
+                        git config user.email "jenkins@example.com"
+                        git config user.name "Jenkins CI"
+                        git add environments/staging/${APP_NAME}/values.yaml
+                        git commit -m "Promote ${APP_NAME} ${env.IMAGE_TAG} to staging"
+                        git push
+                    """
+                }
+                
+                echo "ArgoCD will automatically deploy the changes to staging environment"
+            }
+        }
+
+        stage('Verify Staging Deployment') {
+            when {
+                expression { env.BUILD_TYPE == 'main' }
+            }
+            steps {
+                // Allow time for ArgoCD to deploy
+                sleep(time: 30, unit: 'SECONDS')
+                
+                // Verify deployment status via kubectl
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        export KUBECONFIG=\${KUBECONFIG}
+                        kubectl rollout status deployment/${APP_NAME} -n ${APP_NAME}-staging --timeout=3m
+                    """
+                }
+                
+                // Run tests against staging
+                sh """
+                    npm run test:e2e -- --url=https://staging-api.example.com
+                """
+            }
+        }
+
+        stage('Determine Version Increment') {
+            steps {
+                script {
+                    def lastTag = sh(script: 'git describe --tags --abbrev=0 || echo "0.0.0"', returnStdout: true).trim()
+                    def commitMessages = sh(script: "git log ${lastTag}..HEAD --pretty=format:'%s'", returnStdout: true)
+                    
+                    // Default to patch
+                    def changeType = 'patch'
+                    
+                    // Check if ANY commit has breaking changes
+                    if (commitMessages =~ /(?i)BREAKING CHANGE:/ || commitMessages =~ /(?i)!:/) {
+                        changeType = 'major'
+                    }
+                    // Check if ANY commit has new features (and no breaking changes)
+                    else if (commitMessages =~ /(?i)^feat:/) {
+                        changeType = 'minor'
+                    }
+                    // All other cases will use the default 'patch'
+                    
+                    echo "Determined change type: ${changeType}"
+                    env.CHANGE_TYPE = changeType
+                }
+            }
+        }
+
+        stage('Create Release') {
+            when {
+                expression { env.BUILD_TYPE == 'main' && currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                script {
+                    sh """
+                        # Get current version from package.json
+                        CURRENT_VERSION=\$(node -p "require('./package.json').version")
+                        
+                        # Split version into components
+                        IFS='.' read -r MAJOR MINOR PATCH <<< "\$CURRENT_VERSION"
+                        
+                        # Increment version based on change type
+                        if [ "${env.CHANGE_TYPE}" = "major" ]; then
+                            NEW_VERSION="\$((MAJOR+1)).0.0"
+                        elif [ "${env.CHANGE_TYPE}" = "minor" ]; then
+                            NEW_VERSION="\${MAJOR}.\$((MINOR+1)).0"
+                        else
+                            NEW_VERSION="\${MAJOR}.\${MINOR}.\$((PATCH+1))"
+                        fi
+                        
+                        # Update package.json
+                        npm version \$NEW_VERSION --no-git-tag-version
+                        
+                        # Store new version for later use
+                        echo \$NEW_VERSION > .version
+                    """
+                    
+                    // Read the version into an environment variable
+                    env.NEW_VERSION = readFile('.version').trim()
+                    
+                    // Now we need credentials ONLY for pushing to GitHub
+                    withCredentials([string(credentialsId: 'GH_TOKEN_PSW', variable: 'GITHUB_TOKEN')]) {
+                        sh """
+                            git config --global credential.helper '!f() { echo username=x-access-token; echo password=$GITHUB_TOKEN; }; f'
+                            
+                            # Create and push release branch
+                            git add package.json package-lock.json
+                            git commit -m "Bump version to ${env.NEW_VERSION}"
+                            git checkout -b release/${env.NEW_VERSION}
+                            git push origin release/${env.NEW_VERSION}
+                        """
+                    }
+                    
+                    echo "Created release branch: release/${env.NEW_VERSION}"
+                }
+            }
+        }
+
+
+
+        stage('Production Approval') {
+            when {
+                expression { env.BUILD_TYPE == 'release' }
+            }
+            steps {
+                // Request manual approval for production deployment
+                input message: 'Deploy to Production Environment?', 
+                      ok: 'Approve Deployment',
+                      submitter: 'release-managers,operations'
+                
+                echo "Production deployment approved"
+            }
+        }
+
+        stage('Update GitOps Config - Production') {
+            when {
+                expression { env.BUILD_TYPE == 'release' }
+            }
+            steps {
+                withCredentials([string(credentialsId: 'GH_TOKEN_PSW', variable: 'GITHUB_TOKEN')]) {
+                    sh """
+                        git config --global credential.helper '!f() { echo username=x-access-token; echo password=$GITHUB_TOKEN; }; f'
+                        git clone https://${GITHUB_TOKEN}@github.com/misgav777/hw-k8s-config.git gitops
+                        cd gitops
+                        
+                        # Update image tag in production values
+                        sed -i 's|tag:.*|tag: "${env.RELEASE_VERSION}"|g' environments/prod/${APP_NAME}/values.yaml
+                        
+                        git config user.email "jenkins@example.com"
+                        git config user.name "Jenkins CI"
+                        git add environments/prod/${APP_NAME}/values.yaml
+                        git commit -m "Release ${APP_NAME} ${env.RELEASE_VERSION} to production"
+                        git push
+                    """
+                }
+                
+                echo "Changes pushed to GitOps repo. ArgoCD will show pending changes for production"
+                
+                // Notify operations team
+                emailext (
+                    subject: "APPROVAL REQUIRED: Production Release ${env.RELEASE_VERSION}",
+                    body: "Please review and approve the pending changes in ArgoCD for release ${env.RELEASE_VERSION}.",
+                    to: "operations@example.com"
+                )
+            }
+        }
+
+        stage('Verify Production Deployment') {
+            when {
+                expression { env.BUILD_TYPE == 'release' }
+            }
+            steps {
+                // Manual verification step (requires human approval in ArgoCD)
+                input message: 'Verify ArgoCD has synced and the deployment is healthy', 
+                      ok: 'Verified'
+                
+                // Verify deployment with kubectl
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        export KUBECONFIG=\${KUBECONFIG}
+                        kubectl rollout status deployment/${APP_NAME} -n ${APP_NAME}-prod --timeout=3m
+                    """
+                }
+                
+                // Run smoke tests against production
+                sh """
+                    npm run test:smoke -- --url=https://api.example.com
+                """
+                
+                echo "Production deployment verified"
+            }
+        }
+    }
+    post {
+        // success {
+        //     // Notify team of success
+        //     emailext (
+        //         subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        //         body: "Build succeeded. Environment: ${env.TARGET_ENV}, Version: ${env.IMAGE_TAG ?: env.RELEASE_VERSION}",
+        //         to: "team@example.com"
+        //     )
+        // }
+        
+        // failure {
+        //     // Notify team of failure
+        //     emailext (
+        //         subject: "FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        //         body: "Build failed. Check the logs at: ${env.BUILD_URL}",
+        //         to: "team@example.com"
+        //     )
+        // }
+        
+        always {
+            // Clean workspace
+            cleanWs()
+        }    
     }
 }
