@@ -165,7 +165,7 @@ pipeline{
                 
                 // Run tests against staging
                 sh """
-                    npm run test:e2e -- --url=https://staging-api.example.com
+                    npm run test:e2e -- --url=http://ac3126dbd758b4dfcac754a24af2f38c-72db703e039d3f40.elb.ap-south-1.amazonaws.com/stg
                 """
             }
         }
