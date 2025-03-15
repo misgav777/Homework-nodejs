@@ -187,53 +187,20 @@ pipeline{
             }
             steps {
                 script {
-                    sh """
-                        #!/bin/bash
-                        set -e  # Fail on error
-                        
-                        # Get current version from package.json
-                        CURRENT_VERSION=\$(node -p "require('./package.json').version")
-                        
-                        # Split version into components using a more compatible approach
-                        MAJOR=\$(echo \$CURRENT_VERSION | cut -d. -f1)
-                        MINOR=\$(echo \$CURRENT_VERSION | cut -d. -f2)
-                        PATCH=\$(echo \$CURRENT_VERSION | cut -d. -f3)
-
-                        # Increment version based on change type
-                        if [ "\${env.CHANGE_TYPE}" = "major" ]; then
-                            NEW_VERSION="\$((MAJOR+1)).0.0"
-                        elif [ "\${env.CHANGE_TYPE}" = "minor" ]; then
-                            NEW_VERSION="\${MAJOR}.\$((MINOR+1)).0"
-                        else
-                            NEW_VERSION="\${MAJOR}.\${MINOR}.\$((PATCH+1))"
-                        fi
-
-                        # Update package.json
-                        npm version \$NEW_VERSION --no-git-tag-version
-                        echo \$NEW_VERSION > .version
-                    """                   
-                    // Read the version into an environment variable
-                    env.NEW_VERSION = readFile('.version').trim()
+                    // Make the version script executable
+                    sh 'chmod +x version.sh'
                     
-                    // Now we need credentials ONLY for pushing to GitHub
+                    // Run version script with appropriate flags
                     withCredentials([string(credentialsId: 'GH_TOKEN_PSW', variable: 'GITHUB_TOKEN')]) {
-                        sh """
-                            git config --global credential.helper '!f() { echo username=x-access-token; echo password=$GITHUB_TOKEN; }; f'
-                            
-                            # Create and push release branch
-                            git add package.json package-lock.json
-                            git commit -m "Bump version to ${env.NEW_VERSION}"
-                            git checkout -b release/${env.NEW_VERSION}
-                            git push origin release/${env.NEW_VERSION}
-                        """
+                        sh "./version.sh -v ${env.CHANGE_TYPE} -p -u -t ${GITHUB_TOKEN}"
                     }
                     
-                    echo "Created release branch: release/${env.NEW_VERSION}"
+                    // Read new version
+                    env.NEW_VERSION = readFile('.version').trim()
+                    echo "Created new version: ${env.NEW_VERSION}"
                 }
             }
         }
-
-
 
         stage('Production Approval') {
             when {
