@@ -107,11 +107,11 @@ pipeline{
                         cd gitops
                         
                         # Update image tag in development values
-                        sed -i 's|tag:.*|tag: "${env.IMAGE_TAG}"|g' environments/dev/${APP_NAME}/values.yaml
+                        sed -i 's|tag:.*|tag: "${env.IMAGE_TAG}"|g' environments/dev/values.yaml
                         
                         git config user.email "jenkins@example.com"
                         git config user.name "Jenkins CI"
-                        git add environments/dev/${APP_NAME}/values.yaml
+                        git add environments/dev/values.yaml
                         git commit -m "Update ${APP_NAME} dev image to ${env.IMAGE_TAG}"
                         git push
                     """
@@ -133,11 +133,11 @@ pipeline{
                         cd gitops
                         
                         # Update image tag in staging values
-                        sed -i 's|tag:.*|tag: "${env.IMAGE_TAG}"|g' environments/staging/${APP_NAME}/values.yaml
+                        sed -i 's|tag:.*|tag: "${env.IMAGE_TAG}"|g' environments/stg/values.yaml
                         
                         git config user.email "jenkins@example.com"
                         git config user.name "Jenkins CI"
-                        git add environments/staging/${APP_NAME}/values.yaml
+                        git add environments/stg/values.yaml
                         git commit -m "Promote ${APP_NAME} ${env.IMAGE_TAG} to staging"
                         git push
                     """
@@ -273,11 +273,11 @@ pipeline{
                         cd gitops
                         
                         # Update image tag in production values
-                        sed -i 's|tag:.*|tag: "${env.RELEASE_VERSION}"|g' environments/prod/${APP_NAME}/values.yaml
+                        sed -i 's|tag:.*|tag: "${env.RELEASE_VERSION}"|g' environments/prd/values.yaml
                         
                         git config user.email "jenkins@example.com"
                         git config user.name "Jenkins CI"
-                        git add environments/prod/${APP_NAME}/values.yaml
+                        git add environments/prd/values.yaml
                         git commit -m "Release ${APP_NAME} ${env.RELEASE_VERSION} to production"
                         git push
                     """
@@ -321,24 +321,6 @@ pipeline{
         }
     }
     post {
-        // success {
-        //     // Notify team of success
-        //     emailext (
-        //         subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        //         body: "Build succeeded. Environment: ${env.TARGET_ENV}, Version: ${env.IMAGE_TAG ?: env.RELEASE_VERSION}",
-        //         to: "team@example.com"
-        //     )
-        // }
-        
-        // failure {
-        //     // Notify team of failure
-        //     emailext (
-        //         subject: "FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        //         body: "Build failed. Check the logs at: ${env.BUILD_URL}",
-        //         to: "team@example.com"
-        //     )
-        // }
-        
         always {
             // Clean workspace
             cleanWs()
