@@ -165,21 +165,15 @@ pipeline{
         stage('Determine Version Increment') {
             steps {
                 script {
-                    def lastTag = sh(script: 'git describe --tags --abbrev=0 || echo "0.0.0"', returnStdout: true).trim()
+                    def lastTag = sh(script: 'git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD', returnStdout: true).trim()
                     def commitMessages = sh(script: "git log ${lastTag}..HEAD --pretty=format:'%s'", returnStdout: true)
                     
-                    // Default to patch
                     def changeType = 'patch'
-                    
-                    // Check if ANY commit has breaking changes
                     if (commitMessages =~ /(?i)BREAKING CHANGE:/ || commitMessages =~ /(?i)!:/) {
                         changeType = 'major'
-                    }
-                    // Check if ANY commit has new features (and no breaking changes)
-                    else if (commitMessages =~ /(?i)^feat:/) {
+                    } else if (commitMessages =~ /(?i)^feat:/) {
                         changeType = 'minor'
                     }
-                    // All other cases will use the default 'patch'
                     
                     echo "Determined change type: ${changeType}"
                     env.CHANGE_TYPE = changeType
