@@ -188,6 +188,9 @@ pipeline{
             steps {
                 script {
                     sh """
+                        #!/bin/bash
+                        set -e  # Fail on error
+
                         # Get current version from package.json
                         CURRENT_VERSION=\$(node -p "require('./package.json').version")
                         
