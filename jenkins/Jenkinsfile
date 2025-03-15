@@ -188,11 +188,11 @@ pipeline{
             steps {
                 script {
                     // Make the version script executable
-                    sh 'chmod +x version.sh'
+                    sh 'chmod +x jenkins/version.sh'
                     
                     // Run version script with appropriate flags
                     withCredentials([string(credentialsId: 'GH_TOKEN_PSW', variable: 'GITHUB_TOKEN')]) {
-                        sh "./version.sh -v ${env.CHANGE_TYPE} -p -u -t ${GITHUB_TOKEN}"
+                        sh "./jenkins/version.sh -v ${env.CHANGE_TYPE} -p -u -t ${GITHUB_TOKEN}"
                     }
                     
                     // Read new version
