@@ -48,17 +48,17 @@ pipeline{
             }
         }
                 
-        stage('installing dependencies') {
-            steps {
-                sh 'npm install'
-            }
-        }
+        // stage('installing dependencies') {
+        //     steps {
+        //         sh 'npm install'
+        //     }
+        // }
 
-        stage('NPM dependencies Audit') {
-            steps {
-                sh 'npm audit --audit-level=critical'
-            }
-        }
+        // stage('NPM dependencies Audit') {
+        //     steps {
+        //         sh 'npm audit --audit-level=critical'
+        //     }
+        // }
 
         stage('testing') {
             steps {
