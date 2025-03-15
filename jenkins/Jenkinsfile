@@ -83,10 +83,8 @@ pipeline{
                         env.IMAGE_TAG = "${env.RELEASE_VERSION}"
                     }
                     
-                    // Login to AWS ECR
                     sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
                     
-                    // Build and push Docker image
                     sh """
                         docker build -t ${FULL_IMAGE_NAME}:${env.IMAGE_TAG} .
                         docker push ${FULL_IMAGE_NAME}:${env.IMAGE_TAG}
