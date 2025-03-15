@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jasmine-node spec",
     "build": "pack-zip",
-    "start": "node server.js"
+    "start": "node server.js",
+    "lint": "eslint ."
   },
   "author": "Leon Jalfon",
   "license": "MIT",
