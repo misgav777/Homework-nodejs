@@ -66,17 +66,50 @@ jobs:
           }
           EOL
 
+    #   - name: Semantic Release
+    #     id: semantic
+    #     env:
+    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    #     run: npx semantic-release
+
+    #   - name: Check if release was created
+    #     id: check_release
+    #     run: |
+    #       if [ -n "${{ steps.semantic.outputs.new_release_version }}" ]; then
+    #         echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
+    #         echo "release_created=true" >> $GITHUB_OUTPUT
+    #         echo "new_version=${{ steps.semantic.outputs.new_release_version }}" >> $GITHUB_OUTPUT
+    #       else
+    #         echo "No new release was created"
+    #         echo "release_created=false" >> $GITHUB_OUTPUT
+    #       fi
+
       - name: Semantic Release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release
-
+        run: |
+          # Run semantic-release and capture its output
+          npx semantic-release > semantic-output.txt
+          
+          # Check if a new release was published
+          if grep -q "The next release version is" semantic-output.txt; then
+            # Extract the version number
+            VERSION=$(grep -o "The next release version is [0-9]\+\.[0-9]\+\.[0-9]\+" semantic-output.txt | grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+")
+            echo "new_release_version=$VERSION" >> $GITHUB_OUTPUT
+            echo "new_release_published=true" >> $GITHUB_OUTPUT
+            echo "Published new release: $VERSION"
+          else
+            echo "No new release was published"
+            echo "new_release_published=false" >> $GITHUB_OUTPUT
+          fi
+        
       - name: Check if release was created
         id: check_release
         run: |
-          if [ -n "${{ steps.semantic.outputs.new_release_version }}" ]; then
+          if [ "${{ steps.semantic.outputs.new_release_published }}" == "true" ]; then
             echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
             echo "release_created=true" >> $GITHUB_OUTPUT
             echo "new_version=${{ steps.semantic.outputs.new_release_version }}" >> $GITHUB_OUTPUT
@@ -84,6 +117,12 @@ jobs:
             echo "No new release was created"
             echo "release_created=false" >> $GITHUB_OUTPUT
           fi
+      - name: Debug Outputs
+        run: |
+          echo "semantic.outputs.new_release_version: ${{ steps.semantic.outputs.new_release_version }}"
+          echo "semantic.outputs.new_release_published: ${{ steps.semantic.outputs.new_release_published }}"
+          echo "check_release.outputs.release_created: ${{ steps.check_release.outputs.release_created }}"
+          echo "check_release.outputs.new_version: ${{ steps.check_release.outputs.new_version }}"
 
   deploy:
     needs: release
