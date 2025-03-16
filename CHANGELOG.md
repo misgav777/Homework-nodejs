@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/misgav777/malamhomework/compare/v1.2.0...v1.2.1) (2025-03-16)
+
+
+### Bug Fixes
+
+* fix deploy job ([e1d882c](https://github.com/misgav777/malamhomework/commit/e1d882c617fffe76caa7cd3edd37dfbe467f6471))
+
 # [1.2.0](https://github.com/misgav777/malamhomework/compare/v1.1.2...v1.2.0) (2025-03-16)
 
 
