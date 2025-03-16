@@ -1,0 +1,153 @@
+name: Production Release and Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write  # Needed for creating releases
+  id-token: write  # Required for AWS authentication
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.semantic.outputs.new_release_version }}
+      release_created: ${{ steps.semantic.outputs.new_release_published }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Important for semantic-release to analyze commit history
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install semantic-release
+        run: |
+          npm install -g semantic-release@19
+          npm install -g @semantic-release/git @semantic-release/changelog @semantic-release/npm @semantic-release/github @semantic-release/commit-analyzer @semantic-release/release-notes-generator
+
+      - name: Create .releaserc file
+        run: |
+          cat > .releaserc << 'EOL'
+          {
+            "branches": ["main"],
+            "plugins": [
+              "@semantic-release/commit-analyzer",
+              "@semantic-release/release-notes-generator",
+              "@semantic-release/npm",
+              ["@semantic-release/github", {
+                "assets": []
+              }],
+              ["@semantic-release/git", {
+                "assets": ["package.json"],
+                "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+              }]
+            ]
+          }
+          EOL
+
+      - name: Semantic Release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Check if release was created
+        id: check_release
+        run: |
+          if [ -n "${{ steps.semantic.outputs.new_release_version }}" ]; then
+            echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
+            echo "new_release_created=true" >> $GITHUB_OUTPUT
+            echo "new_release_version=${{ steps.semantic.outputs.new_release_version }}" >> $GITHUB_OUTPUT
+          else
+            echo "No new release was created"
+            echo "new_release_created=false" >> $GITHUB_OUTPUT
+          fi
+
+  deploy:
+    needs: release
+    if: needs.release.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: false
+          load: true
+          tags: hw-app:${{ needs.release.outputs.new_version }}
+          outputs: type=docker, dest=/tmp/hw-app.tar
+
+      - name: Load image
+        run: docker load -i /tmp/hw-app.tar
+      
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: hw-app:${{ needs.release.outputs.new_version }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::713881821143:role/GithubActionRole
+          aws-region: ap-south-1
+      
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push image to ECR
+        env:
+          ECR_REGISTRY: 713881821143.dkr.ecr.ap-south-1.amazonaws.com
+          ECR_REPOSITORY: prod/hw-app
+          IMAGE_TAG: ${{ needs.release.outputs.new_version }}
+        run: |
+          docker tag hw-app:${{ needs.release.outputs.new_version }} $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag hw-app:${{ needs.release.outputs.new_version }} $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "Pushed image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          
+      - name: Update GitOps Repo
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          VERSION: ${{ needs.release.outputs.new_version }}
+        run: |
+          git config --global credential.helper '!f() { echo username=x-access-token; echo password=${{ secrets.PAT_TOKEN }}; }; f'
+          git clone https://${{ secrets.PAT_TOKEN }}@github.com/misgav777/hw-k8s-config.git gitops
+          cd gitops
+
+          # Update the image tag in the values.yaml file
+          sed -i 's|tag:.*|tag: "${{ needs.release.outputs.new_version }}"|g' environments/prod/values.yaml
+          
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add environments/prod/values.yaml
+          git commit -m "Promote hw-app ${{ needs.release.outputs.new_version }} to production"
+          git push
+          
+          echo "ArgoCD will automatically deploy the changes to production environment"
