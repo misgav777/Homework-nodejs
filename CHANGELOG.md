@@ -1,3 +1,10 @@
+## [1.2.9](https://github.com/misgav777/malamhomework/compare/v1.2.8...v1.2.9) (2025-03-16)
+
+
+### Bug Fixes
+
+* fix error ([41167e9](https://github.com/misgav777/malamhomework/commit/41167e91f89ab78ceb5d1d6e7e1aa3985b8cb7bd))
+
 ## [1.2.8](https://github.com/misgav777/malamhomework/compare/v1.2.7...v1.2.8) (2025-03-16)
 
 
