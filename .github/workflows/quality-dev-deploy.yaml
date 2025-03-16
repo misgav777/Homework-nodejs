@@ -91,10 +91,10 @@ jobs:
           
       - name: Update GitOps Repo
         env:
-          GITHUN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          git config --global credential.helper '!f() { echo username=x-access-token; echo password=${{ secrets.GITHUB_TOKEN }}; }; f'
-          git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/misgav777/hw-k8s-config.git gitops
+          git config --global credential.helper '!f() { echo username=x-access-token; echo password=${{ secrets.PAT_TOKEN }}; }; f'
+          git clone https://${{ secrets.PAT_TOKEN }}@github.com/misgav777/hw-k8s-config.git gitops
           cd gitops
 
           #update the image tag in the values.yaml file
