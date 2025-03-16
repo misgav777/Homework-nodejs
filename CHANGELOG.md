@@ -1,3 +1,10 @@
+## [1.2.7](https://github.com/misgav777/malamhomework/compare/v1.2.6...v1.2.7) (2025-03-16)
+
+
+### Bug Fixes
+
+* fix trivy test ([4c827a3](https://github.com/misgav777/malamhomework/commit/4c827a315853b57ab8fd8211bbcfd5a974068261))
+
 ## [1.2.6](https://github.com/misgav777/malamhomework/compare/v1.2.5...v1.2.6) (2025-03-16)
 
 
