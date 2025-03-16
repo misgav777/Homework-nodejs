@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/misgav777/malamhomework/compare/v1.1.2...v1.2.0) (2025-03-16)
+
+
+### Features
+
+* add automated ([97b7d09](https://github.com/misgav777/malamhomework/commit/97b7d0951459f99ea7b05b435834686d391308fd))
+
 ## [1.1.2](https://github.com/misgav777/malamhomework/compare/v1.1.1...v1.1.2) (2025-03-16)
 
 
