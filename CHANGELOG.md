@@ -1,3 +1,12 @@
+## [1.2.10](https://github.com/misgav777/malamhomework/compare/v1.2.9...v1.2.10) (2025-03-16)
+
+
+### Bug Fixes
+
+* cahnge fran to Francisco ([4374337](https://github.com/misgav777/malamhomework/commit/437433776b0e5a0f333fea883dcb64538bd0c59e))
+* cahnge fran to Francisco ([ac996e9](https://github.com/misgav777/malamhomework/commit/ac996e9434017baa107025ee918da2421e47c251))
+* cahnge fran to Francisco ([ff37b6a](https://github.com/misgav777/malamhomework/commit/ff37b6aad0cc619211049f1ea6a1d520406fbfd9))
+
 ## [1.2.9](https://github.com/misgav777/malamhomework/compare/v1.2.8...v1.2.9) (2025-03-16)
 
 
