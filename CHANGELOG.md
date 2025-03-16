@@ -1,3 +1,10 @@
+## [1.2.8](https://github.com/misgav777/malamhomework/compare/v1.2.7...v1.2.8) (2025-03-16)
+
+
+### Bug Fixes
+
+* refactor the code ([feaa09a](https://github.com/misgav777/malamhomework/commit/feaa09a4f6f72f4c9e7a39338b31756cb3521fc5))
+
 ## [1.2.7](https://github.com/misgav777/malamhomework/compare/v1.2.6...v1.2.7) (2025-03-16)
 
 
