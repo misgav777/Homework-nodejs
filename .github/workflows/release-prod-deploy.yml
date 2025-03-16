@@ -155,7 +155,7 @@ jobs:
           format: table
           exit-code: '1'
           ignore-unfixed: true
-          severity: CRITICAL
+          severity: 'CRITICAL,HIGH'
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
