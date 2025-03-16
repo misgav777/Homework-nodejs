@@ -13,8 +13,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     outputs:
-      new_version: ${{ steps.semantic.outputs.new_release_version }}
-      release_created: ${{ steps.semantic.outputs.new_release_published }}
+      new_version: ${{ steps.check_release.outputs.new_version }}
+      release_created: ${{ steps.check_release.outputs.release_created }}
 
     steps:
       - name: Checkout code
@@ -78,11 +78,11 @@ jobs:
         run: |
           if [ -n "${{ steps.semantic.outputs.new_release_version }}" ]; then
             echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
-            echo "new_release_created=true" >> $GITHUB_OUTPUT
-            echo "new_release_version=${{ steps.semantic.outputs.new_release_version }}" >> $GITHUB_OUTPUT
+            echo "release_created=true" >> $GITHUB_OUTPUT
+            echo "new_version=${{ steps.semantic.outputs.new_release_version }}" >> $GITHUB_OUTPUT
           else
             echo "No new release was created"
-            echo "new_release_created=false" >> $GITHUB_OUTPUT
+            echo "release_created=false" >> $GITHUB_OUTPUT
           fi
 
   deploy:
