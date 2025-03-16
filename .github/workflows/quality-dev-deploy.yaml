@@ -52,6 +52,11 @@ jobs:
       - name: Docker compose up
         run: docker compose up -d
 
+      - name: Wait for container to be ready
+        run: |
+          sleep 10  # Give the container time to initialize
+          echo "Waiting for service to be ready..."
+
       - name: Run curl test
         run: curl -sSf http://localhost:80
       
