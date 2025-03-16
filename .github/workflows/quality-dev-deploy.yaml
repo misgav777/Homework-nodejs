@@ -56,7 +56,7 @@ jobs:
         run: curl -sSf http://localhost:80
       
       - name: Docker compose down
-        run: docker-compose down
+        run: docker compose down
 
       - name: docker build
         uses: docker/build-push-action@v4
