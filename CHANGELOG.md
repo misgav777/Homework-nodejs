@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/misgav777/malamhomework/compare/v1.2.2...v1.2.3) (2025-03-16)
+
+
+### Bug Fixes
+
+* bump node version to 20 ([df2695d](https://github.com/misgav777/malamhomework/commit/df2695d09dde412ac4651360587153386a24364e))
+
 ## [1.2.2](https://github.com/misgav777/malamhomework/compare/v1.2.1...v1.2.2) (2025-03-16)
 
 
