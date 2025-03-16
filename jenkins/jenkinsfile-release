@@ -26,7 +26,7 @@ pipeline {
                     }
                     
                     echo "GIT_TAG is set to: ${env.GIT_TAG}"
-                    env.IMAGE_TAG_RELEASE = "${IMAGE_NAME}:${GIT_TAG}"
+                    env.IMAGE_TAG_RELEASE = "${FULL_IMAGE_NAME}:${GIT_TAG}"
                 }
             }
         }
@@ -36,8 +36,6 @@ pipeline {
                 script {
                     // Install dependencies using npm
                     sh "npm install"
-                    
-                    // No linting script found in package.json
                 }
             }
         }
@@ -67,7 +65,6 @@ pipeline {
                 script {
                     sh 'printenv'
                     
-                    // Since semantic-release isn't in your dependencies, we'll use a more direct approach
                     // Extract version from package.json
                     def version = sh(returnStdout: true, script: "node -e \"console.log(require('./package.json').version)\"").trim()
                     def tag = "v${version}"
@@ -77,34 +74,34 @@ pipeline {
                     sh "git push origin ${tag}"
                     
                     echo "Published new tag: ${tag}"
-                    } else {
-                        echo "No new version to release"
+                }
+            }
+        }
+        
+        stage("Build and Deploy") {
+            when {
+                expression {
+                    return env.GIT_TAG != "" // Only run if GIT_TAG is not empty
+                }
+            }
+            
+            stages {
+                stage('Build and Push Image') {
+                    steps {
+                        script {
+                            sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                            
+                            // Build the Docker image
+                            sh "docker build -t ${FULL_IMAGE_NAME}:${GIT_TAG} ."
+
+                            // Push the Docker image to ECR
+                            sh "docker push ${FULL_IMAGE_NAME}:${GIT_TAG}"
+                        }
                     }
                 }
             }
         }
-        stages {
-
-            stage("Build and Deploy") {
-                when {
-                    expression {
-                        return env.GIT_TAG != "" // Only run if GIT_TAG is not empty
-                    }
-                }
-                
-                steps {
-                    script {
-                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-                        
-                        // Build the Docker image
-                        sh "docker build -t ${FULL_IMAGE_NAME}:${GIT_TAG} ."
-
-                        // Push the Docker image to ECR
-                        sh "docker push ${FULL_IMAGE_NAME}:${GIT_TAG}"
-                    }
-                }
-            }
-        }
+    }
     
     post {
         success {
