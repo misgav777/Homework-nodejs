@@ -32,59 +32,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install semantic-release and plugins
-        run: |
-          npm install --no-save \
-            semantic-release@20.1.3 \
-            @semantic-release/git@10.0.1 \
-            @semantic-release/changelog@6.0.3 \
-            @semantic-release/npm@9.0.2 \
-            @semantic-release/github@8.1.0 \
-            @semantic-release/commit-analyzer@9.0.2 \
-            @semantic-release/release-notes-generator@10.0.3
-
-      - name: Create .releaserc file
-        run: |
-          cat > .releaserc << 'EOL'
-          {
-            "branches": ["main"],
-            "plugins": [
-              "@semantic-release/commit-analyzer",
-              "@semantic-release/release-notes-generator",
-              "@semantic-release/changelog",
-              ["@semantic-release/npm", {
-                "npmPublish": false
-              }],
-              ["@semantic-release/github", {
-                "assets": []
-              }],
-              ["@semantic-release/git", {
-                "assets": ["package.json", "CHANGELOG.md"],
-                "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
-              }]
-            ]
-          }
-          EOL
-
-    #   - name: Semantic Release
-    #     id: semantic
-    #     env:
-    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-    #     run: npx semantic-release
-
-    #   - name: Check if release was created
-    #     id: check_release
-    #     run: |
-    #       if [ -n "${{ steps.semantic.outputs.new_release_version }}" ]; then
-    #         echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
-    #         echo "release_created=true" >> $GITHUB_OUTPUT
-    #         echo "new_version=${{ steps.semantic.outputs.new_release_version }}" >> $GITHUB_OUTPUT
-    #       else
-    #         echo "No new release was created"
-    #         echo "release_created=false" >> $GITHUB_OUTPUT
-    #       fi
-
       - name: Semantic Release
         id: semantic
         env:
@@ -117,12 +64,6 @@ jobs:
             echo "No new release was created"
             echo "release_created=false" >> $GITHUB_OUTPUT
           fi
-      - name: Debug Outputs
-        run: |
-          echo "semantic.outputs.new_release_version: ${{ steps.semantic.outputs.new_release_version }}"
-          echo "semantic.outputs.new_release_published: ${{ steps.semantic.outputs.new_release_published }}"
-          echo "check_release.outputs.release_created: ${{ steps.check_release.outputs.release_created }}"
-          echo "check_release.outputs.new_version: ${{ steps.check_release.outputs.new_version }}"
 
   deploy:
     needs: release
@@ -174,10 +115,7 @@ jobs:
           IMAGE_TAG: ${{ needs.release.outputs.new_version }}
         run: |
           docker tag hw-app:${{ needs.release.outputs.new_version }} $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag hw-app:${{ needs.release.outputs.new_version }} $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "Pushed image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           
       - name: Update GitOps Repo
         env:
@@ -188,7 +126,6 @@ jobs:
           git clone https://${{ secrets.PAT_TOKEN }}@github.com/misgav777/hw-k8s-config.git gitops
           cd gitops
 
-          # Update the image tag in the values.yaml file
           sed -i 's|tag:.*|tag: "${{ needs.release.outputs.new_version }}"|g' environments/prd/values.yaml
           
           git config user.email "github-actions@github.com"
@@ -196,5 +133,3 @@ jobs:
           git add environments/prd/values.yaml
           git commit -m "Promote hw-app ${{ needs.release.outputs.new_version }} to production"
           git push
-          
-          echo "ArgoCD will automatically deploy the changes to production environment"
