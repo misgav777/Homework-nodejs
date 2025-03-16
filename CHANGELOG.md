@@ -1,3 +1,10 @@
+## [1.2.5](https://github.com/misgav777/malamhomework/compare/v1.2.4...v1.2.5) (2025-03-16)
+
+
+### Bug Fixes
+
+* add cleaning cache in dockerfile ([381ba13](https://github.com/misgav777/malamhomework/commit/381ba1323f220595a89661897af953e465db79b0))
+
 ## [1.2.4](https://github.com/misgav777/malamhomework/compare/v1.2.3...v1.2.4) (2025-03-16)
 
 
