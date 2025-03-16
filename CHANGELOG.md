@@ -1,3 +1,10 @@
+## [1.2.11](https://github.com/misgav777/malamhomework/compare/v1.2.10...v1.2.11) (2025-03-16)
+
+
+### Bug Fixes
+
+* cahnge ([c58f6fa](https://github.com/misgav777/malamhomework/commit/c58f6fad5ca6a10f6dfc5b3b716edaa8016fa512))
+
 ## [1.2.10](https://github.com/misgav777/malamhomework/compare/v1.2.9...v1.2.10) (2025-03-16)
 
 
