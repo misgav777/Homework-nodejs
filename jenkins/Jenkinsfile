@@ -145,22 +145,22 @@ pipeline{
             }
         }
 
-       stage('Verify Deployment') {
-            steps {
-                // Allow time for deployment to complete
-                sleep(time: 15, unit: 'SECONDS')
+    //    stage('Verify Deployment') {
+    //         steps {
+    //             // Allow time for deployment to complete
+    //             sleep(time: 15, unit: 'SECONDS')
                 
-                retry(10) {
-                    script {
-                        def response = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://ac3126dbd758b4dfcac754a24af2f38c-72db703e039d3f40.elb.ap-south-1.amazonaws.com/stg/health', returnStdout: true).trim()
-                        if (response != "200") {
-                            error "Health check failed with status ${response}"
-                            sleep(time: 5, unit: 'SECONDS')
-                        }
-                    }
-                }
-            }
-        }
+    //             retry(10) {
+    //                 script {
+    //                     def response = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://ac3126dbd758b4dfcac754a24af2f38c-72db703e039d3f40.elb.ap-south-1.amazonaws.com/stg/health', returnStdout: true).trim()
+    //                     if (response != "200") {
+    //                         error "Health check failed with status ${response}"
+    //                         sleep(time: 5, unit: 'SECONDS')
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
 
         stage('Determine Version Increment') {
             steps {

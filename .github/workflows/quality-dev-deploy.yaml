@@ -1,0 +1,113 @@
+name: Code Quality, Development, and Deployment
+
+on:
+  push:
+    branches:
+      - '**'
+      # - '!main'
+permissions:
+  id-token: write # This is required for requesting the JWT
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+        
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: code coverage
+        run: npm run coverage
+      
+      - name: run test
+        run: npm start
+
+      - name: Run curl test
+        run: curl -sSf http://localhost:3000
+  
+  Test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Docker compose up
+        run: docker-compose up -d
+
+      - name: Run curl test
+        run: curl -sSf http://localhost:80
+      
+      - name: Docker compose down
+        run: docker-compose down
+
+      - name: docker build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: false
+          load: true
+          tags: hw-app:${{ github.sha }}
+          outputs: type=docker, dest=/tmp/hw-app.tar
+
+      - name: load image
+        run: docker load -i /tmp/hw-app.tar
+      
+      - name: Run trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: hw-app:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+      
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::713881821143:role/GithubActionRole
+          aws-region: ap-south-1
+      
+      - name: Longin to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push image to ECR
+        run: |
+          docker tag hw-app:${{ github.sha }} 713881821143.dkr.ecr.ap-south-1.amazonaws.com/stg/hw-app:${{ github.sha }}
+          docker push 713881821143.dkr.ecr.ap-south-1.amazonaws.com/hw-app:${{ github.sha }}
+          
+      - name: Update GitOps Repo
+        env:
+          GITHUN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global credential.helper '!f() { echo username=x-access-token; echo password=${{ secrets.GITHUB_TOKEN }}; }; f'
+          git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/misgav777/hw-k8s-config.git gitops
+          cd gitops
+
+          #update the image tag in the values.yaml file
+          sed -i 's|tag:.*|tag: "${{ github.sha }}"|g' environments/stg/values.yaml
+          
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add environments/stg/values.yaml
+          git commit -m "Promote nodejs-app ${{ github.sha }} to staging"
+          git push
+          
+          echo "ArgoCD will automatically deploy the changes to staging environment"
+
+
+
+
