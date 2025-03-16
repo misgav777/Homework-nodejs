@@ -1,13 +1,14 @@
 {
   "name": "nodejs-demoapp",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description": "nodejs demo app",
   "main": "server.js",
   "scripts": {
-  "test": "jasmine-node spec",
-  "build": "pack-zip",
-  "start": "node server.js",
-  "coverage": "nyc npm test"
+    "test": "jasmine-node spec",
+    "build": "pack-zip",
+    "start": "node server.js",
+    "coverage": "nyc npm test",
+    "semantic-release": "semantic-release"
   },
   "author": "Leon Jalfon",
   "license": "MIT",
@@ -21,6 +22,15 @@
   },
   "devDependencies": {
     "nyc": "^17.1.0",
-    "pack-zip": "^0.2.2"
+    "pack-zip": "^0.2.2",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^8.0.7",
+    "@semantic-release/npm": "^10.0.3",
+    "semantic-release": "^19.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/misgav777/malamhomework.git"
   }
 }
