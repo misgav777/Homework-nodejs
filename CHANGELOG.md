@@ -1,3 +1,10 @@
+## [1.2.6](https://github.com/misgav777/malamhomework/compare/v1.2.5...v1.2.6) (2025-03-16)
+
+
+### Bug Fixes
+
+* Vulnerability packages ([293767e](https://github.com/misgav777/malamhomework/commit/293767ee998f535316a6d295a3bc8e761ac6d559))
+
 ## [1.2.5](https://github.com/misgav777/malamhomework/compare/v1.2.4...v1.2.5) (2025-03-16)
 
 
