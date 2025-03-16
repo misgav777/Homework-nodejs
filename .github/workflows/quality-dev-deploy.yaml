@@ -33,11 +33,12 @@ jobs:
       - name: code coverage
         run: npm run coverage
       
-      - name: run test
-        run: npm start
-
-      - name: Run curl test
-        run: curl -sSf http://localhost:3000
+      - name: Start server and test
+        run: |
+          npm start &
+          sleep 5
+          curl -sSf http://localhost:3000
+          kill $(lsof -t -i:3000)
   
   Test:
     needs: build
