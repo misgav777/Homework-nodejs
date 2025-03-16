@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    tools {
+        nodejs '23.7.0'
+        git 'Default'
+    }
     
     environment {
         KUBECONFIG = credentials('kubeconfig')
