@@ -129,7 +129,7 @@ jobs:
       - name: Push image to ECR
         env:
           ECR_REGISTRY: 713881821143.dkr.ecr.ap-south-1.amazonaws.com
-          ECR_REPOSITORY: prod/hw-app
+          ECR_REPOSITORY: prd/hw-app
           IMAGE_TAG: ${{ needs.release.outputs.new_version }}
         run: |
           docker tag hw-app:${{ needs.release.outputs.new_version }} $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -148,11 +148,11 @@ jobs:
           cd gitops
 
           # Update the image tag in the values.yaml file
-          sed -i 's|tag:.*|tag: "${{ needs.release.outputs.new_version }}"|g' environments/prod/values.yaml
+          sed -i 's|tag:.*|tag: "${{ needs.release.outputs.new_version }}"|g' environments/prd/values.yaml
           
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
-          git add environments/prod/values.yaml
+          git add environments/prd/values.yaml
           git commit -m "Promote hw-app ${{ needs.release.outputs.new_version }} to production"
           git push
           
