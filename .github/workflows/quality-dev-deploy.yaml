@@ -126,7 +126,7 @@ jobs:
         id: verify-health
         run: |
           # Set your staging URL - replace with your actual URL
-          STAGING_URL="http://af74b0db95df34fd7b944b072cf86d0f-86d24b8ace29a190.elb.ap-south-1.amazonaws.com/stg"
+          STAGING_URL="http://a7a2e1fe89bd1498aabb59ea7d8b552d-6c4d37d1064979ac.elb.ap-south-1.amazonaws.com/stg"
         
           # Make a simple health check request
           echo "Checking health endpoint at $STAGING_URL/health"
