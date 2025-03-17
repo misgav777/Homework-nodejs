@@ -1,3 +1,10 @@
+## [1.2.13](https://github.com/misgav777/malamhomework/compare/v1.2.12...v1.2.13) (2025-03-17)
+
+
+### Bug Fixes
+
+* change the docker build ([4ee7eb8](https://github.com/misgav777/malamhomework/commit/4ee7eb8f52462c1282972816f46138e4391541a2))
+
 ## [1.2.12](https://github.com/misgav777/malamhomework/compare/v1.2.11...v1.2.12) (2025-03-17)
 
 
