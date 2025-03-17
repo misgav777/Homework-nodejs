@@ -1,3 +1,10 @@
+## [1.2.12](https://github.com/misgav777/malamhomework/compare/v1.2.11...v1.2.12) (2025-03-17)
+
+
+### Bug Fixes
+
+* change the title ([#7](https://github.com/misgav777/malamhomework/issues/7)) ([103f768](https://github.com/misgav777/malamhomework/commit/103f7689b7ca37e17e57c57e26239d5228aa7bed))
+
 ## [1.2.11](https://github.com/misgav777/malamhomework/compare/v1.2.10...v1.2.11) (2025-03-16)
 
 
